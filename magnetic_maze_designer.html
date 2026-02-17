@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magnetic Marble Maze Designer - A4 Printable</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        button.secondary {
+            background: #2196F3;
+        }
+        
+        button.secondary:hover {
+            background: #0b7dda;
+        }
+        
+        button.danger {
+            background: #f44336;
+        }
+        
+        button.danger:hover {
+            background: #da190b;
+        }
+        
+        button.warning {
+            background: #ff9800;
+        }
+        
+        button.warning:hover {
+            background: #e68900;
+        }
+        
+        .track-width-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .track-width-control label {
+            font-weight: bold;
+        }
+        
+        .track-width-control input[type="range"] {
+            width: 150px;
+        }
+        
+        .track-width-control span {
+            min-width: 40px;
+        }
+        
+        #maze-container {
+            width: 100%;
+            max-width: 595px;
+            margin: 0 auto;
+            background: white;
+            position: relative;
+            border: 2px solid #333;
+        }
+        
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            background: white;
+            cursor: none;
+        }
+        
+        #cursorCircle {
+            position: fixed;
+            pointer-events: none;
+            border: 2px solid #2196F3;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            display: none;
+        }
+        
+        #cursorCircle::before,
+        #cursorCircle::after {
+            content: '';
+            position: absolute;
+            background: #2196F3;
+        }
+        
+        #cursorCircle::before {
+            width: 2px;
+            height: 20px;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        #cursorCircle::after {
+            width: 20px;
+            height: 2px;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .instructions {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 5px;
+            line-height: 1.6;
+        }
+        
+        .instructions h3 {
+            margin-bottom: 10px;
+            color: #1976d2;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        .status.ready {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+        
+        .status.placing {
+            background: #fff9c4;
+            color: #f57f17;
+        }
+        
+        .waypoint-marker {
+            fill: #2196F3;
+            stroke: white;
+            stroke-width: 2;
+        }
+        
+        .waypoint-number {
+            fill: white;
+            font-size: 12px;
+            font-weight: bold;
+            text-anchor: middle;
+            dominant-baseline: middle;
+        }
+        
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+                margin: 0;
+            }
+            
+            .container {
+                box-shadow: none;
+                padding: 0;
+                margin: 0;
+                max-width: 100%;
+            }
+            
+            .controls, .instructions, h1, .subtitle, .status {
+                display: none !important;
+            }
+            
+            #maze-container {
+                max-width: 100%;
+                page-break-inside: avoid;
+                border: none !important;
+                margin: 0;
+                padding: 0;
+            }
+            
+            canvas {
+                border: none !important;
+                max-width: 100% !important;
+                display: block !important;
+                page-break-inside: avoid;
+            }
+            
+            #cursorCircle {
+                display: none !important;
+            }
+        }
+        
+        @page {
+            size: A4 portrait;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧲 Magnetic Marble Maze Designer</h1>
+        <p class="subtitle">Click to place waypoints - the track will connect them automatically!</p>
+        
+        <div id="status" class="status ready">Click on the canvas to place waypoints (need at least 2 points)</div>
+        
+        <div class="controls">
+            <button class="warning" onclick="undoLastPoint()">Undo Last Point</button>
+            <button class="danger" onclick="clearCanvas()">Clear All</button>
+            <button class="secondary" onclick="flipCourse()">Flip Horizontal</button>
+            <button onclick="printMaze()">Print Maze</button>
+            <div class="track-width-control">
+                <label>Track Width:</label>
+                <input type="range" id="trackWidth" min="0.5" max="4" step="0.1" value="1.5" onchange="updateTrackWidth()">
+                <span id="widthDisplay">1.5 cm</span>
+            </div>
+        </div>
+        
+        <div class="controls" style="margin-top: 10px;">
+            <div class="track-width-control">
+                <label>Paper Width:</label>
+                <select id="paperWidth" onchange="updatePaperSize()">
+                    <option value="595">1 A4 (210mm)</option>
+                    <option value="1190">2 A4s (420mm)</option>
+                    <option value="1785">3 A4s (630mm)</option>
+                </select>
+            </div>
+            <div class="track-width-control">
+                <label>Paper Height:</label>
+                <select id="paperHeight" onchange="updatePaperSize()">
+                    <option value="842" selected>1 A4 (297mm)</option>
+                    <option value="1684">2 A4s (594mm)</option>
+                    <option value="2526">3 A4s (891mm)</option>
+                    <option value="3368">4 A4s (1188mm)</option>
+                </select>
+            </div>
+        </div>
+        
+        <div id="maze-container">
+            <canvas id="mazeCanvas" width="595" height="842"></canvas>
+        </div>
+        
+        <div id="cursorCircle"></div>
+        
+        <div class="instructions">
+            <h3>How to Use:</h3>
+            <ol>
+                <li><strong>Set Paper Size:</strong> Choose width and height for your maze</li>
+                <li><strong>Place Waypoints:</strong> Click on the canvas to place points - the track appears automatically!</li>
+                <li><strong>Adjust:</strong> Use "Undo Last Point" to remove the last waypoint, or "Clear All" to start over</li>
+                <li><strong>Track Width:</strong> Adjust the slider to make your track wider or narrower - updates in real-time</li>
+                <li><strong>Print:</strong> When satisfied, click "Print Maze"</li>
+            </ol>
+            <p><strong>Tips:</strong></p>
+            <ul>
+                <li>First point = START, Last point = FINISH</li>
+                <li>The track updates automatically as you add waypoints</li>
+                <li>Place waypoints strategically to create curves, zigzags, and interesting paths</li>
+                <li>Use more waypoints for complex mazes, fewer for simple ones</li>
+                <li>Try vertical layouts (1 wide x 2+ tall) for challenging long mazes</li>
+            </ul>
+        </div>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('mazeCanvas');
+        const ctx = canvas.getContext('2d');
+        const status = document.getElementById('status');
+        const cursorCircle = document.getElementById('cursorCircle');
+        
+        let waypoints = [];
+        let trackWidth = 45; // in pixels
+        let trackGenerated = false;
+        
+        // Convert cm to pixels (assuming 72 DPI for canvas, 1cm = 28.35px)
+        const CM_TO_PX = 28.35;
+        
+        function cmToPx(cm) {
+            return cm * CM_TO_PX;
+        }
+        
+        // Update cursor circle size
+        function updateCursorSize() {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = rect.width / canvas.width;
+            const diameter = trackWidth * scaleX;
+            cursorCircle.style.width = diameter + 'px';
+            cursorCircle.style.height = diameter + 'px';
+        }
+        
+        // Show/hide cursor circle
+        canvas.addEventListener('mouseenter', () => {
+            cursorCircle.style.display = 'block';
+            updateCursorSize();
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            cursorCircle.style.display = 'none';
+        });
+        
+        canvas.addEventListener('mousemove', (e) => {
+            // Update cursor circle position
+            cursorCircle.style.left = e.clientX + 'px';
+            cursorCircle.style.top = e.clientY + 'px';
+        });
+        
+        // Update cursor size when window resizes
+        window.addEventListener('resize', () => {
+            if (cursorCircle.style.display === 'block') {
+                updateCursorSize();
+            }
+        });
+        
+        function printMaze() {
+            // Hide waypoint markers before printing
+            const tempWaypoints = [...waypoints];
+            
+            // Redraw without waypoints and grid
+            initCanvas(false); // false = no grid
+            if (waypoints.length >= 2) {
+                const smoothPath = createSmoothPathThroughWaypoints(waypoints);
+                drawSmoothTrack(smoothPath, trackWidth, 4);
+                addStartFinishMarkers(smoothPath);
+            }
+            
+            // Trigger print
+            window.print();
+            
+            // Restore waypoints and grid after a short delay
+            setTimeout(() => {
+                initCanvas(true); // true = with grid
+                if (waypoints.length >= 2) {
+                    const smoothPath = createSmoothPathThroughWaypoints(waypoints);
+                    drawSmoothTrack(smoothPath, trackWidth, 4);
+                    addStartFinishMarkers(smoothPath);
+                }
+                drawWaypoints();
+            }, 100);
+        }
+        
+        function flipCourse() {
+            if (waypoints.length === 0) return;
+            
+            // Mirror all waypoints on the vertical axis (flip X coordinates)
+            waypoints = waypoints.map(p => ({
+                x: canvas.width - p.x,
+                y: p.y
+            }));
+            
+            // Redraw
+            initCanvas(true);
+            if (waypoints.length >= 2) {
+                const smoothPath = createSmoothPathThroughWaypoints(waypoints);
+                drawSmoothTrack(smoothPath, trackWidth, 4);
+                addStartFinishMarkers(smoothPath);
+                trackGenerated = true;
+            }
+            drawWaypoints();
+        }
+        
+        function updatePaperSize() {
+            const width = parseInt(document.getElementById('paperWidth').value);
+            const height = parseInt(document.getElementById('paperHeight').value);
+            
+            canvas.width = width;
+            canvas.height = height;
+            
+            initCanvas(true);
+            
+            if (waypoints.length >= 2) {
+                const smoothPath = createSmoothPathThroughWaypoints(waypoints);
+                drawSmoothTrack(smoothPath, trackWidth, 4);
+                addStartFinishMarkers(smoothPath);
+                trackGenerated = true;
+            }
+            
+            if (waypoints.length > 0) {
+                drawWaypoints();
+            }
+        }
+        
+        function initCanvas(showGrid = true) {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw grid first (so it's behind everything) - only if showGrid is true
+            if (showGrid) {
+                const gridSize = 50;
+                ctx.strokeStyle = 'rgba(200, 200, 200, 0.5)';
+                ctx.lineWidth = 1;
+                
+                // Draw vertical lines
+                for (let x = 0; x <= canvas.width; x += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, canvas.height);
+                    ctx.stroke();
+                }
+                
+                // Draw horizontal lines
+                for (let y = 0; y <= canvas.height; y += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(canvas.width, y);
+                    ctx.stroke();
+                }
+            }
+            
+            // Add title at the very top
+            ctx.fillStyle = '#000';
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillText('Traseul animalelor', canvas.width / 2, 5);
+        }
+        
+        function updateTrackWidth() {
+            const widthCm = parseFloat(document.getElementById('trackWidth').value);
+            trackWidth = cmToPx(widthCm); // Convert to pixels for internal use
+            document.getElementById('widthDisplay').textContent = widthCm.toFixed(1) + ' cm';
+            
+            // Update cursor size
+            updateCursorSize();
+            
+            if (waypoints.length >= 2) {
+                initCanvas(true);
+                const smoothPath = createSmoothPathThroughWaypoints(waypoints);
+                drawSmoothTrack(smoothPath, trackWidth, 4);
+                addStartFinishMarkers(smoothPath);
+                drawWaypoints();
+            }
+        }
+        
+        function clearCanvas() {
+            waypoints = [];
+            trackGenerated = false;
+            initCanvas(true);
+            updateStatus();
+        }
+        
+        function undoLastPoint() {
+            if (waypoints.length > 0) {
+                waypoints.pop();
+                initCanvas(true);
+                
+                // Auto-regenerate track if we still have enough points
+                if (waypoints.length >= 2) {
+                    const smoothPath = createSmoothPathThroughWaypoints(waypoints);
+                    drawSmoothTrack(smoothPath, trackWidth, 4);
+                    addStartFinishMarkers(smoothPath);
+                    trackGenerated = true;
+                } else {
+                    trackGenerated = false;
+                }
+                
+                drawWaypoints();
+                updateStatus();
+            }
+        }
+        
+        function updateStatus() {
+            if (waypoints.length === 0) {
+                status.className = 'status ready';
+                status.textContent = 'Click on the canvas to place waypoints';
+            } else if (waypoints.length === 1) {
+                status.className = 'status placing';
+                status.textContent = 'Place at least one more waypoint to see the track';
+            } else {
+                status.className = 'status ready';
+                status.textContent = `${waypoints.length} waypoints placed - Track updates automatically!`;
+            }
+        }
+        
+        function getMousePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            return {
+                x: (e.clientX - rect.left) * scaleX,
+                y: (e.clientY - rect.top) * scaleY
+            };
+        }
+        
+        canvas.addEventListener('click', (e) => {
+            const pos = getMousePos(e);
+            
+            // Add waypoint
+            waypoints.push(pos);
+            
+            // Redraw
+            initCanvas(true);
+            
+            // Auto-generate track if we have at least 2 points
+            if (waypoints.length >= 2) {
+                const smoothPath = createSmoothPathThroughWaypoints(waypoints);
+                drawSmoothTrack(smoothPath, trackWidth, 4);
+                addStartFinishMarkers(smoothPath);
+                trackGenerated = true;
+            }
+            
+            // Draw waypoints on top
+            drawWaypoints();
+            updateStatus();
+        });
+        
+        function drawWaypoints() {
+            // Draw lines connecting waypoints
+            if (waypoints.length > 1) {
+                ctx.strokeStyle = '#2196F3';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(waypoints[0].x, waypoints[0].y);
+                for (let i = 1; i < waypoints.length; i++) {
+                    ctx.lineTo(waypoints[i].x, waypoints[i].y);
+                }
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            
+            // Draw waypoint markers
+            waypoints.forEach((point, index) => {
+                // Circle
+                ctx.fillStyle = '#2196F3';
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, 12, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Number
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText((index + 1).toString(), point.x, point.y);
+            });
+        }
+        
+        function generateTrack() {
+            if (waypoints.length < 2) {
+                alert('Please place at least 2 waypoints before generating the track');
+                return;
+            }
+            
+            trackGenerated = true;
+            
+            // Clear and redraw base
+            initCanvas(true);
+            
+            // Generate smooth path through waypoints
+            const smoothPath = createSmoothPathThroughWaypoints(waypoints);
+            
+            // Draw the track
+            drawSmoothTrack(smoothPath, trackWidth, 4);
+            
+            // Add start and finish markers
+            addStartFinishMarkers(smoothPath);
+            
+            updateStatus();
+        }
+        
+        function createSmoothPathThroughWaypoints(points) {
+            if (points.length < 2) return points;
+            
+            const smoothPath = [];
+            
+            // Use Catmull-Rom spline interpolation
+            for (let i = 0; i < points.length - 1; i++) {
+                const p0 = points[Math.max(0, i - 1)];
+                const p1 = points[i];
+                const p2 = points[i + 1];
+                const p3 = points[Math.min(points.length - 1, i + 2)];
+                
+                // Number of segments based on distance - more segments for smoother curves
+                const distance = Math.sqrt(
+                    Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2)
+                );
+                const segments = Math.max(20, Math.floor(distance / 5)); // Increased from /10 to /5
+                
+                for (let t = 0; t <= segments; t++) {
+                    const u = t / segments;
+                    const point = catmullRom(p0, p1, p2, p3, u);
+                    smoothPath.push(point);
+                }
+            }
+            
+            return smoothPath;
+        }
+        
+        function catmullRom(p0, p1, p2, p3, t) {
+            const t2 = t * t;
+            const t3 = t2 * t;
+            
+            const x = 0.5 * (
+                (2 * p1.x) +
+                (-p0.x + p2.x) * t +
+                (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 +
+                (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3
+            );
+            
+            const y = 0.5 * (
+                (2 * p1.y) +
+                (-p0.y + p2.y) * t +
+                (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 +
+                (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3
+            );
+            
+            return { x, y };
+        }
+        
+        function drawSmoothTrack(trackPath, width, wallThickness) {
+            const halfWidth = width / 2;
+            
+            // Save the current context state
+            ctx.save();
+            
+            // First, draw the track fill (center path)
+            ctx.fillStyle = '#f5f5f5';
+            ctx.strokeStyle = '#f5f5f5';
+            ctx.lineWidth = width;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            ctx.beginPath();
+            ctx.moveTo(trackPath[0].x, trackPath[0].y);
+            for (let i = 1; i < trackPath.length; i++) {
+                ctx.lineTo(trackPath[i].x, trackPath[i].y);
+            }
+            ctx.stroke();
+            
+            // Create outer boundary (for outer wall)
+            const outerWidth = width + wallThickness;
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = outerWidth;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            ctx.beginPath();
+            ctx.moveTo(trackPath[0].x, trackPath[0].y);
+            for (let i = 1; i < trackPath.length; i++) {
+                ctx.lineTo(trackPath[i].x, trackPath[i].y);
+            }
+            ctx.stroke();
+            
+            // Now clip out the inner area and draw over it
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.strokeStyle = 'rgba(0,0,0,1)';
+            ctx.lineWidth = width - wallThickness;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            ctx.beginPath();
+            ctx.moveTo(trackPath[0].x, trackPath[0].y);
+            for (let i = 1; i < trackPath.length; i++) {
+                ctx.lineTo(trackPath[i].x, trackPath[i].y);
+            }
+            ctx.stroke();
+            
+            // Reset composite operation
+            ctx.globalCompositeOperation = 'source-over';
+            
+            // Redraw the track fill
+            ctx.fillStyle = '#f5f5f5';
+            ctx.strokeStyle = '#f5f5f5';
+            ctx.lineWidth = width - wallThickness * 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            ctx.beginPath();
+            ctx.moveTo(trackPath[0].x, trackPath[0].y);
+            for (let i = 1; i < trackPath.length; i++) {
+                ctx.lineTo(trackPath[i].x, trackPath[i].y);
+            }
+            ctx.stroke();
+            
+            // Draw dotted center line
+            ctx.strokeStyle = '#666';
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.setLineDash([8, 8]); // 8px dash, 8px gap
+            
+            ctx.beginPath();
+            ctx.moveTo(trackPath[0].x, trackPath[0].y);
+            for (let i = 1; i < trackPath.length; i++) {
+                ctx.lineTo(trackPath[i].x, trackPath[i].y);
+            }
+            ctx.stroke();
+            
+            // Reset line dash
+            ctx.setLineDash([]);
+            
+            // Restore context
+            ctx.restore();
+        }
+        
+        function addStartFinishMarkers(path) {
+            if (path.length < 2) return;
+            
+            // Calculate marker size based on track width (slightly larger than track)
+            const markerRadius = (trackWidth / 2) + 5;
+            
+            // Draw start circle
+            const start = path[0];
+            ctx.fillStyle = '#4CAF50';
+            ctx.beginPath();
+            ctx.arc(start.x, start.y, markerRadius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'white';
+            
+            // Adjust font size based on marker size
+            const fontSize = Math.max(10, Math.min(14, markerRadius * 0.5));
+            ctx.font = `bold ${fontSize}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('START', start.x, start.y);
+            
+            // Draw finish circle
+            const finish = path[path.length - 1];
+            ctx.fillStyle = '#F44336';
+            ctx.beginPath();
+            ctx.arc(finish.x, finish.y, markerRadius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'white';
+            ctx.fillText('FINISH', finish.x, finish.y);
+        }
+        
+        // Initialize
+        initCanvas(true);
+        updateStatus();
+    </script>
+</body>
+</html>
