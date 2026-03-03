@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drone Operator Label Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #0f172a; min-height: 100vh; padding: 20px; color: #e2e8f0; }
+        .bg-pattern { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.15) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(168, 85, 247, 0.15) 0%, transparent 50%); z-index: 0; pointer-events: none; }
+        .container { max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
+        .header { text-align: center; margin-bottom: 48px; padding-top: 40px; }
+        .drone-icon { font-size: 64px; margin-bottom: 16px; display: inline-block; animation: float 3s ease-in-out infinite; }
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+        .header h1 { font-size: clamp(32px, 5vw, 56px); font-weight: 900; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 12px; }
+        .header p { font-size: 18px; color: #94a3b8; font-weight: 500; }
+        .card { background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(20px); border: 1px solid rgba(148, 163, 184, 0.1); border-radius: 24px; padding: clamp(24px, 4vw, 48px); box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4); margin-bottom: 24px; }
+        .form-section { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 32px; margin-bottom: 40px; }
+        .form-group { margin-bottom: 24px; }
+        .form-group label { display: block; font-weight: 700; color: #f1f5f9; margin-bottom: 12px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; }
+        .form-group input[type="text"] { width: 100%; padding: 16px 20px; background: rgba(15, 23, 42, 0.6); border: 2px solid rgba(148, 163, 184, 0.2); border-radius: 16px; font-size: 16px; font-family: 'Courier New', monospace; color: #f1f5f9; transition: all 0.3s; font-weight: 600; }
+        .form-group input[type="text"]:focus { outline: none; border-color: #6366f1; background: rgba(15, 23, 42, 0.8); box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1); }
+        .slider-container { position: relative; padding: 20px 0; }
+        .slider-value { text-align: center; font-size: 24px; font-weight: 800; color: #a855f7; margin-bottom: 16px; }
+        input[type="range"] { width: 100%; height: 8px; background: rgba(15, 23, 42, 0.6); border-radius: 8px; outline: none; -webkit-appearance: none; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; background: linear-gradient(135deg, #6366f1, #8b5cf6); cursor: pointer; border-radius: 50%; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4); }
+        input[type="range"]::-moz-range-thumb { width: 24px; height: 24px; background: linear-gradient(135deg, #6366f1, #8b5cf6); cursor: pointer; border-radius: 50%; border: none; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4); }
+        .radio-group { display: grid; gap: 12px; }
+        .radio-option { position: relative; display: flex; align-items: center; padding: 16px 20px; background: rgba(15, 23, 42, 0.4); border: 2px solid rgba(148, 163, 184, 0.1); border-radius: 16px; cursor: pointer; transition: all 0.3s; }
+        .radio-option:hover { border-color: rgba(99, 102, 241, 0.3); background: rgba(15, 23, 42, 0.6); transform: translateX(4px); }
+        .radio-option input[type="radio"] { margin-right: 16px; width: 20px; height: 20px; cursor: pointer; accent-color: #6366f1; }
+        .radio-option.selected { border-color: #6366f1; background: rgba(99, 102, 241, 0.1); }
+        .radio-label { flex: 1; }
+        .layout-name { font-weight: 700; color: #f1f5f9; font-size: 15px; margin-bottom: 4px; }
+        .layout-desc { font-size: 13px; color: #94a3b8; }
+        .preview-section { text-align: center; padding: 48px 24px; background: rgba(15, 23, 42, 0.4); border-radius: 20px; min-height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid rgba(148, 163, 184, 0.1); }
+        .preview-section h3 { font-size: 24px; color: #f1f5f9; margin-bottom: 32px; font-weight: 800; }
+        #preview-container { display: flex; flex-wrap: wrap; gap: 10mm; justify-content: center; align-items: center; background: white; padding: 20px; border-radius: 16px; }
+        .label-preview { background: white; border: 2px solid #cbd5e0; display: inline-flex; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); position: relative; }
+        .label-preview canvas { position: absolute; }
+        .action-buttons { display: flex; gap: 16px; justify-content: center; margin-top: 40px; flex-wrap: wrap; }
+        .btn { padding: 18px 36px; border: none; border-radius: 16px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; display: inline-flex; align-items: center; gap: 10px; font-family: 'Inter', sans-serif; text-decoration: none; }
+        .btn-primary { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3); }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(99, 102, 241, 0.4); }
+        .btn-secondary { background: rgba(15, 23, 42, 0.6); color: #f1f5f9; border: 2px solid rgba(99, 102, 241, 0.3); }
+        .btn-secondary:hover { background: rgba(15, 23, 42, 0.8); border-color: #6366f1; }
+        .info-box { background: rgba(251, 191, 36, 0.1); border: 2px solid rgba(251, 191, 36, 0.3); border-radius: 16px; padding: 24px; margin-top: 32px; }
+        .info-box h4 { color: #fbbf24; font-size: 16px; margin-bottom: 12px; font-weight: 700; }
+        .info-box p { color: #fde68a; font-size: 14px; line-height: 1.6; }
+        .label-count { margin-top: 20px; font-weight: 700; color: #a855f7; font-size: 15px; background: rgba(168, 85, 247, 0.1); padding: 12px 24px; border-radius: 12px; display: inline-block; }
+        @media print {
+            body { background: white !important; padding: 0 !important; margin: 0 !important; }
+            .bg-pattern { display: none !important; }
+            .header { display: none !important; }
+            .container { max-width: 100% !important; margin: 0 !important; padding: 0 !important; }
+            .card { display: none !important; }
+            #preview-card { display: block !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; background: white !important; border: none !important; }
+            .preview-section { background: white !important; padding: 0 !important; border: none !important; min-height: auto !important; margin: 0 !important; }
+            .preview-section h3 { display: none !important; }
+            #preview-container { background: white !important; padding: 5mm !important; border-radius: 0 !important; }
+            .action-buttons { display: none !important; }
+            .label-count { display: none !important; }
+            .info-box { display: none !important; }
+            @page { size: A4 portrait; margin: 5mm; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+    
+    <div class="container">
+        <div class="header">
+            <div class="drone-icon">🚁</div>
+            <h1>Drone Label Generator</h1>
+            <p>Professional operator ID labels for your quadcopter</p>
+        </div>
+
+        <div class="card">
+            <div class="form-section">
+                <div>
+                    <div class="form-group">
+                        <label for="operatorId">🆔 Operator ID</label>
+                        <input type="text" id="operatorId" placeholder="Enter your operator code">
+                    </div>
+                    <div class="form-group">
+                        <label for="phoneNumber">📞 Phone Number (Optional - QR only)</label>
+                        <input type="text" id="phoneNumber" placeholder="Contact number (will be in QR code only)">
+                    </div>
+                    <div class="form-group">
+                        <label>📏 Label Size</label>
+                        <div class="slider-container">
+                            <div class="slider-value" id="sizeValue">25mm</div>
+                            <input type="range" id="sizeSlider" min="20" max="40" value="25" step="1">
+                            <p style="font-size: 12px; color: #94a3b8; margin-top: 8px; text-align: center;">20mm for ID only, 25mm+ recommended with phone number</p>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <div class="form-group">
+                        <label>🎨 Layout Style</label>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="layout" value="horizontal" checked>
+                                <div class="radio-label">
+                                    <div class="layout-name">Horizontal</div>
+                                    <div class="layout-desc">Text beside QR code</div>
+                                </div>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="layout" value="vertical">
+                                <div class="radio-label">
+                                    <div class="layout-name">Vertical Stack</div>
+                                    <div class="layout-desc">Text below QR code</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>🖨️ Print Mode</label>
+                        <div class="radio-group">
+                            <label class="radio-option">
+                                <input type="radio" name="printMode" value="single" checked>
+                                <div class="radio-label">
+                                    <div class="layout-name">Single Label</div>
+                                    <div class="layout-desc">Print one label</div>
+                                </div>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="printMode" value="fillA4">
+                                <div class="radio-label">
+                                    <div class="layout-name">Fill A4 Sheet</div>
+                                    <div class="layout-desc">Multiple labels</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-secondary" onclick="updatePreview()">🔄 Update Preview</button>
+                <button class="btn btn-primary" onclick="printLabels()">🖨️ Print</button>
+                <a class="btn btn-primary" id="downloadBtn" download="drone-labels.png">📥 Download PNG</a>
+            </div>
+
+            <div class="info-box">
+                <h4>📋 Instructions & QR Code Behavior</h4>
+                <p><strong>Operator ID:</strong> Required. Displays on label and in QR code.</p>
+                <p style="margin-top: 8px;"><strong>Phone Number:</strong> Optional. Only in QR code, not on label.</p>
+                <p style="margin-top: 8px;"><strong>When scanned:</strong></p>
+                <p style="margin-left: 16px;">• <strong>With phone:</strong> Phone offers to save as contact (name: "Drone Operator", phone, operator ID in notes)</p>
+                <p style="margin-left: 16px;">• <strong>Without phone:</strong> Shows operator ID as text you can copy</p>
+                <p style="margin-top: 8px;"><strong>QR Size:</strong> 20mm works for ID only, 25mm+ recommended with phone number.</p>
+                <p style="margin-top: 8px;"><strong>Printing:</strong> Only labels print. Single A4 page. Use sticker paper at 100% scale.</p>
+            </div>
+        </div>
+
+        <div class="card" id="preview-card">
+            <div class="preview-section">
+                <h3>✨ Label Preview</h3>
+                <div id="preview-container"></div>
+                <div class="label-count" id="labelCount"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentQRDataURL = '';
+
+        async function generateQRCode(operatorId, phoneNumber) {
+            if (!operatorId) return '';
+            
+            // Format QR code data based on whether phone is provided
+            let qrData;
+            if (phoneNumber && phoneNumber.trim()) {
+                // Use MECARD format - phones recognize this and offer to save as contact
+                // Format: MECARD:N:Name;TEL:phone;NOTE:note;;
+                qrData = `MECARD:N:Drone Operator;TEL:${phoneNumber.trim()};NOTE:${operatorId};;`;
+            } else {
+                // Plain text for operator ID only - easy to copy
+                qrData = operatorId;
+            }
+            
+            try {
+                const container = document.createElement('div');
+                container.style.display = 'none';
+                document.body.appendChild(container);
+                
+                new QRCode(container, {
+                    text: qrData,
+                    width: 500,
+                    height: 500,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+                
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                const canvas = container.querySelector('canvas');
+                if (canvas) {
+                    const dataURL = canvas.toDataURL('image/png');
+                    document.body.removeChild(container);
+                    return dataURL;
+                }
+                document.body.removeChild(container);
+                return '';
+            } catch (err) {
+                console.error('QR generation failed:', err);
+                return '';
+            }
+        }
+
+        // Calculate optimal font size to fit text in available space
+        function calculateFontSize(text, availableWidth, availableHeight, minSize, maxSize) {
+            const tempCanvas = document.createElement('canvas');
+            const ctx = tempCanvas.getContext('2d');
+            
+            let fontSize = maxSize;
+            ctx.font = `${fontSize}px Arial, sans-serif`; // Changed to Arial, removed bold
+            
+            // Keep reducing font size until text fits
+            while (fontSize > minSize) {
+                ctx.font = `${fontSize}px Arial, sans-serif`;
+                
+                // Wrap text and check if it fits
+                const lines = [];
+                let currentLine = '';
+                
+                for (let i = 0; i < text.length; i++) {
+                    const testLine = currentLine + text[i];
+                    const metrics = ctx.measureText(testLine);
+                    
+                    if (metrics.width > availableWidth && currentLine.length > 0) {
+                        lines.push(currentLine);
+                        currentLine = text[i];
+                    } else {
+                        currentLine = testLine;
+                    }
+                }
+                if (currentLine) lines.push(currentLine);
+                
+                const lineHeight = fontSize * 1.3;
+                const totalHeight = lines.length * lineHeight;
+                
+                if (totalHeight <= availableHeight) {
+                    return { fontSize, lines };
+                }
+                
+                fontSize -= 1;
+            }
+            
+            // If we hit minimum, recalculate lines
+            ctx.font = `${minSize}px Arial, sans-serif`;
+            const lines = [];
+            let currentLine = '';
+            
+            for (let i = 0; i < text.length; i++) {
+                const testLine = currentLine + text[i];
+                const metrics = ctx.measureText(testLine);
+                
+                if (metrics.width > availableWidth && currentLine.length > 0) {
+                    lines.push(currentLine);
+                    currentLine = text[i];
+                } else {
+                    currentLine = testLine;
+                }
+            }
+            if (currentLine) lines.push(currentLine);
+            
+            return { fontSize: minSize, lines };
+        }
+
+        async function createLabelCanvas(operatorId, layout, size, qrImage) {
+            if (!operatorId || !qrImage) return null;
+            
+            const mmToPx = 3.7795275591;
+            const qrSizeMm = layout === 'horizontal' ? size * 0.7 : size * 0.65;
+            const qrSizePx = qrSizeMm * mmToPx;
+            
+            let labelWidth, labelHeight;
+            if (layout === 'horizontal') {
+                labelWidth = size * 1.8 * mmToPx;
+                labelHeight = size * mmToPx;
+            } else {
+                labelHeight = size * 1.6 * mmToPx;
+                labelWidth = size * mmToPx;
+            }
+            
+            // Calculate available space for text
+            let availableWidth, availableHeight;
+            if (layout === 'horizontal') {
+                availableWidth = labelWidth - qrSizePx - 30;
+                availableHeight = labelHeight - 20;
+            } else {
+                availableWidth = labelWidth - 20;
+                availableHeight = labelHeight - qrSizePx - 30;
+            }
+            
+            // Calculate optimal font size
+            const maxFontSize = size * 2;
+            const minFontSize = size * 0.4;
+            const { fontSize, lines } = calculateFontSize(operatorId, availableWidth, availableHeight, minFontSize, maxFontSize);
+            
+            // Create canvas for this label
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = labelWidth;
+            canvas.height = labelHeight;
+            
+            // Draw white background
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, labelWidth, labelHeight);
+            
+            // Draw border
+            ctx.strokeStyle = '#cbd5e0';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(0, 0, labelWidth, labelHeight);
+            
+            // Load and draw QR code
+            const qrImg = new Image();
+            qrImg.src = qrImage;
+            
+            await new Promise((resolve) => {
+                qrImg.onload = () => {
+                    if (layout === 'horizontal') {
+                        const qrX = 10;
+                        const qrY = (labelHeight - qrSizePx) / 2;
+                        ctx.drawImage(qrImg, qrX, qrY, qrSizePx, qrSizePx);
+                    } else {
+                        const qrX = (labelWidth - qrSizePx) / 2;
+                        const qrY = 10;
+                        ctx.drawImage(qrImg, qrX, qrY, qrSizePx, qrSizePx);
+                    }
+                    
+                    // Draw text after QR
+                    ctx.fillStyle = '#000';
+                    ctx.font = `${fontSize}px Arial, sans-serif`; // Changed to Arial, removed bold
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    const lineHeight = fontSize * 1.3;
+                    const totalTextHeight = lines.length * lineHeight;
+                    
+                    if (layout === 'horizontal') {
+                        const textX = qrSizePx + 20 + availableWidth / 2;
+                        let textY = (labelHeight - totalTextHeight) / 2 + lineHeight / 2;
+                        
+                        lines.forEach(line => {
+                            ctx.fillText(line, textX, textY);
+                            textY += lineHeight;
+                        });
+                    } else {
+                        const textX = labelWidth / 2;
+                        let textY = qrSizePx + 20 + (availableHeight - totalTextHeight) / 2 + lineHeight / 2;
+                        
+                        lines.forEach(line => {
+                            ctx.fillText(line, textX, textY);
+                            textY += lineHeight;
+                        });
+                    }
+                    
+                    resolve();
+                };
+                
+                qrImg.onerror = () => resolve();
+            });
+            
+            return canvas;
+        }
+
+        function calculateLabelsOnA4(layout, size) {
+            // A4 dimensions with safe margins
+            const a4Width = 185;  // Reduced from 190 for safety
+            const a4Height = 272; // Reduced from 277 for safety
+            const gap = 10; // Increased gap for better spacing
+            
+            let labelWidth, labelHeight;
+            
+            if (layout === 'horizontal') { 
+                labelWidth = size * 1.8; 
+                labelHeight = size; 
+            } else { 
+                labelWidth = size; 
+                labelHeight = size * 1.6; 
+            }
+            
+            // Calculate how many fit
+            const cols = Math.floor((a4Width + gap) / (labelWidth + gap));
+            const rows = Math.floor((a4Height + gap) / (labelHeight + gap));
+            const total = cols * rows;
+            
+            // Ensure at least 1, maximum based on what actually fits
+            return Math.max(1, Math.min(total, 50)); // Hard cap at 50 labels max
+        }
+
+        async function updatePreview() {
+            const operatorId = document.getElementById('operatorId').value.trim();
+            if (!operatorId) {
+                document.getElementById('preview-container').innerHTML = '<p style="color:#94a3b8">Enter an operator ID to generate labels</p>';
+                document.getElementById('labelCount').textContent = '';
+                return;
+            }
+            
+            const phoneNumber = document.getElementById('phoneNumber').value.trim();
+            const layout = document.querySelector('input[name="layout"]:checked').value;
+            const size = parseInt(document.getElementById('sizeSlider').value);
+            const printMode = document.querySelector('input[name="printMode"]:checked').value;
+            
+            const qrImage = await generateQRCode(operatorId, phoneNumber);
+            currentQRDataURL = qrImage;
+            
+            const container = document.getElementById('preview-container');
+            const labelCount = document.getElementById('labelCount');
+            
+            // Clear container
+            container.innerHTML = '';
+            
+            // Create labels
+            const labelPromises = [];
+            if (printMode === 'single') {
+                labelPromises.push(createLabelCanvas(operatorId, layout, size, qrImage));
+                labelCount.textContent = '';
+            } else {
+                const count = calculateLabelsOnA4(layout, size);
+                for (let i = 0; i < count; i++) {
+                    labelPromises.push(createLabelCanvas(operatorId, layout, size, qrImage));
+                }
+                labelCount.textContent = `${count} labels per A4 sheet`;
+            }
+            
+            // Wait for all labels to be created
+            const canvases = await Promise.all(labelPromises);
+            
+            // Add canvases to container
+            canvases.forEach(canvas => {
+                if (canvas) {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'label-preview';
+                    wrapper.style.width = layout === 'horizontal' ? `${size * 1.8}mm` : `${size}mm`;
+                    wrapper.style.height = layout === 'horizontal' ? `${size}mm` : `${size * 1.6}mm`;
+                    wrapper.appendChild(canvas);
+                    container.appendChild(wrapper);
+                }
+            });
+            
+            // Create download
+            setTimeout(() => {
+                const displayCanvases = container.querySelectorAll('canvas');
+                if (displayCanvases.length === 0) return;
+                
+                const downloadCanvas = document.createElement('canvas');
+                const ctx = downloadCanvas.getContext('2d');
+                
+                const rect = container.getBoundingClientRect();
+                downloadCanvas.width = rect.width * 3;
+                downloadCanvas.height = rect.height * 3;
+                ctx.scale(3, 3);
+                
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, rect.width, rect.height);
+                
+                let x = 10, y = 10, maxH = 0;
+                displayCanvases.forEach(canvas => {
+                    if (x + canvas.width > rect.width - 10) {
+                        x = 10;
+                        y += maxH + 10;
+                        maxH = 0;
+                    }
+                    
+                    ctx.drawImage(canvas, x, y);
+                    x += canvas.width + 10;
+                    maxH = Math.max(maxH, canvas.height);
+                });
+                
+                document.getElementById('downloadBtn').href = downloadCanvas.toDataURL('image/png');
+            }, 100);
+        }
+
+        function printLabels() {
+            const operatorId = document.getElementById('operatorId').value.trim();
+            if (!operatorId) {
+                alert('Please enter an operator ID before printing.');
+                return;
+            }
+            window.print();
+        }
+
+        document.getElementById('operatorId').addEventListener('input', updatePreview);
+        document.getElementById('phoneNumber').addEventListener('input', updatePreview);
+        document.getElementById('sizeSlider').addEventListener('input', function() {
+            document.getElementById('sizeValue').textContent = this.value + 'mm';
+            updatePreview();
+        });
+        document.querySelectorAll('input[name="layout"]').forEach(r => {
+            r.addEventListener('change', () => {
+                document.querySelectorAll('.radio-option').forEach(o => {
+                    if (o.querySelector('input[name="layout"]')) o.classList.remove('selected');
+                });
+                r.closest('.radio-option').classList.add('selected');
+                updatePreview();
+            });
+        });
+        document.querySelectorAll('input[name="printMode"]').forEach(r => {
+            r.addEventListener('change', () => {
+                document.querySelectorAll('.radio-option').forEach(o => {
+                    if (o.querySelector('input[name="printMode"]')) o.classList.remove('selected');
+                });
+                r.closest('.radio-option').classList.add('selected');
+                updatePreview();
+            });
+        });
+        document.querySelectorAll('.radio-option').forEach(opt => {
+            const radio = opt.querySelector('input[type="radio"]');
+            if (radio && radio.checked) opt.classList.add('selected');
+        });
+        updatePreview();
+    </script>
+</body>
+</html>
