@@ -75,7 +75,7 @@
         <div class="header">
             <div class="drone-icon">🚁</div>
             <h1>Drone Label Generator</h1>
-            <p>Professional operator ID labels for your quadcopter</p>
+            <p>Operator ID labels for your drone</p>
         </div>
 
         <div class="card">
@@ -106,14 +106,14 @@
                                 <input type="radio" name="layout" value="horizontal" checked>
                                 <div class="radio-label">
                                     <div class="layout-name">Horizontal</div>
-                                    <div class="layout-desc">Text beside QR code</div>
+                                    <div class="layout-desc">Operator ID beside QR code</div>
                                 </div>
                             </label>
                             <label class="radio-option">
                                 <input type="radio" name="layout" value="vertical">
                                 <div class="radio-label">
                                     <div class="layout-name">Vertical Stack</div>
-                                    <div class="layout-desc">Text below QR code</div>
+                                    <div class="layout-desc">Operator ID below QR code</div>
                                 </div>
                             </label>
                         </div>
@@ -148,13 +148,14 @@
 
             <div class="info-box">
                 <h4>📋 Instructions & QR Code Behavior</h4>
-                <p><strong>Operator ID:</strong> Required. Displays on label and in QR code.</p>
+                <p><strong>Operator ID:</strong> Required. Displays on both label and in QR code.</p>
                 <p style="margin-top: 8px;"><strong>Phone Number:</strong> Optional. Only in QR code, not on label.</p>
                 <p style="margin-top: 8px;"><strong>When scanned:</strong></p>
                 <p style="margin-left: 16px;">• <strong>With phone:</strong> Phone offers to save as contact (name: "Drone Operator", phone, operator ID in notes)</p>
                 <p style="margin-left: 16px;">• <strong>Without phone:</strong> Shows operator ID as text you can copy</p>
                 <p style="margin-top: 8px;"><strong>QR Size:</strong> 20mm works for ID only, 25mm+ recommended with phone number.</p>
-                <p style="margin-top: 8px;"><strong>Printing:</strong> Only labels print. Single A4 page. Use sticker paper at 100% scale.</p>
+                <p style="margin-top: 8px;"><strong>Printing:</strong> Single A4 page. Use sticker paper at 100% scale.</p>
+                <p style="margin-top: 8px;"><strong>TEST:</strong> Always test with your phone camera before printing.</p>
             </div>
         </div>
 
@@ -355,7 +356,7 @@
                         });
                     } else {
                         const textX = labelWidth / 2;
-                        let textY = qrSizePx + 20 + (availableHeight - totalTextHeight) / 2 + lineHeight / 2;
+                        let textY = qrSizePx + 5 + (availableHeight - totalTextHeight) / 2 + lineHeight / 2;
                         
                         lines.forEach(line => {
                             ctx.fillText(line, textX, textY);
