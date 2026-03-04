@@ -138,7 +138,10 @@
                             </div>
                             <div style="flex: 1; display: flex; align-items: center; padding-left: 12px;">
                                 <p style="font-size: 12px; color: #94a3b8; line-height: 1.4;">
-                                    💡 For transparent stickers: set white background, use dark QR/text colors
+                                    💡QR Codes work best with high contrast colors.
+                                    DJI products use one of the following colors:
+                                    DJI Titan: R: 94, G: 98, B: 98
+                                    DJI Silver: R: 160, G: 165, B: 165
                                 </p>
                             </div>
                         </div>
@@ -275,7 +278,7 @@
             });
         }
 
-        async function generateQRCode(operatorId, phoneNumber, qrColor) {
+        async function generateQRCode(operatorId, phoneNumber, qrColor, bgColor) {
             if (!operatorId) return '';
             
             // Format QR code data based on whether phone is provided
@@ -299,7 +302,7 @@
                     width: 500,
                     height: 500,
                     colorDark: qrColor || '#000000',
-                    colorLight: '#ffffff',
+                    colorLight: bgColor || '#ffffff',
                     correctLevel: QRCode.CorrectLevel.M
                 });
                 
@@ -520,7 +523,7 @@
             const textColor = document.getElementById('textColorPicker').value;
             const bgColor = document.getElementById('bgColorPicker').value;
             
-            const qrImage = await generateQRCode(operatorId, phoneNumber, qrColor);
+            const qrImage = await generateQRCode(operatorId, phoneNumber, qrColor, bgColor);
             currentQRDataURL = qrImage;
             
             const container = document.getElementById('preview-container');
