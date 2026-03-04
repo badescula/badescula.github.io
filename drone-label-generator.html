@@ -127,6 +127,21 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="color-picker-wrapper" style="margin-top: 12px;">
+                            <div class="color-picker-container">
+                                <div class="color-preview" id="bgColorPreview" style="background-color: #ffffff;"></div>
+                                <input type="color" id="bgColorPicker" value="#ffffff">
+                                <div>
+                                    <div class="color-label">Background</div>
+                                    <div class="color-value" id="bgColorValue">#FFFFFF</div>
+                                </div>
+                            </div>
+                            <div style="flex: 1; display: flex; align-items: center; padding-left: 12px;">
+                                <p style="font-size: 12px; color: #94a3b8; line-height: 1.4;">
+                                    💡 For transparent stickers: set white background, use dark QR/text colors
+                                </p>
+                            </div>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>📏 Label Size</label>
@@ -192,6 +207,8 @@
                 <p style="margin-top: 8px;"><strong>When scanned:</strong></p>
                 <p style="margin-left: 16px;">• <strong>With phone:</strong> Phone offers to save as contact (name: "Drone Operator", phone, operator ID in notes)</p>
                 <p style="margin-left: 16px;">• <strong>Without phone:</strong> Shows operator ID as text you can copy</p>
+                <p style="margin-top: 8px;"><strong>Colors:</strong> Choose QR code, text, and background colors. For transparent stickers, use a white (or colored) background with dark QR/text.</p>
+                <p style="margin-top: 8px;"><strong>Transparent Stickers:</strong> Standard printers can't print white ink! Set background to white, then your printer will create a white rectangle that shows through transparent sticker material.</p>
                 <p style="margin-top: 8px;"><strong>QR Size:</strong> 20mm works for ID only, 25mm+ recommended with phone number.</p>
                 <p style="margin-top: 8px;"><strong>Printing:</strong> Single A4 page. Use sticker paper at 100% scale.</p>
                 <p style="margin-top: 8px;"><strong>TEST:</strong> Always test with your phone camera before printing.</p>
@@ -220,6 +237,10 @@
             const textColorPreview = document.getElementById('textColorPreview');
             const textColorValue = document.getElementById('textColorValue');
             
+            const bgColorPicker = document.getElementById('bgColorPicker');
+            const bgColorPreview = document.getElementById('bgColorPreview');
+            const bgColorValue = document.getElementById('bgColorValue');
+            
             // QR color picker
             qrColorPicker.addEventListener('input', function() {
                 qrColorPreview.style.backgroundColor = this.value;
@@ -240,6 +261,17 @@
             
             textColorPreview.addEventListener('click', function() {
                 textColorPicker.click();
+            });
+            
+            // Background color picker
+            bgColorPicker.addEventListener('input', function() {
+                bgColorPreview.style.backgroundColor = this.value;
+                bgColorValue.textContent = this.value.toUpperCase();
+                updatePreview();
+            });
+            
+            bgColorPreview.addEventListener('click', function() {
+                bgColorPicker.click();
             });
         }
 
@@ -347,7 +379,7 @@
             return { fontSize: minSize, lines };
         }
 
-        async function createLabelCanvas(operatorId, layout, size, qrImage, textColor) {
+        async function createLabelCanvas(operatorId, layout, size, qrImage, textColor, bgColor) {
             if (!operatorId || !qrImage) return null;
             
             const mmToPx = 3.7795275591;
@@ -385,8 +417,8 @@
             canvas.width = labelWidth;
             canvas.height = labelHeight;
             
-            // Draw white background
-            ctx.fillStyle = 'white';
+            // Draw background with custom color
+            ctx.fillStyle = bgColor || 'white';
             ctx.fillRect(0, 0, labelWidth, labelHeight);
             
             // Draw border
@@ -486,6 +518,7 @@
             const printMode = document.querySelector('input[name="printMode"]:checked').value;
             const qrColor = document.getElementById('qrColorPicker').value;
             const textColor = document.getElementById('textColorPicker').value;
+            const bgColor = document.getElementById('bgColorPicker').value;
             
             const qrImage = await generateQRCode(operatorId, phoneNumber, qrColor);
             currentQRDataURL = qrImage;
@@ -499,12 +532,12 @@
             // Create labels
             const labelPromises = [];
             if (printMode === 'single') {
-                labelPromises.push(createLabelCanvas(operatorId, layout, size, qrImage, textColor));
+                labelPromises.push(createLabelCanvas(operatorId, layout, size, qrImage, textColor, bgColor));
                 labelCount.textContent = '';
             } else {
                 const count = calculateLabelsOnA4(layout, size);
                 for (let i = 0; i < count; i++) {
-                    labelPromises.push(createLabelCanvas(operatorId, layout, size, qrImage, textColor));
+                    labelPromises.push(createLabelCanvas(operatorId, layout, size, qrImage, textColor, bgColor));
                 }
                 labelCount.textContent = `${count} labels per A4 sheet`;
             }
